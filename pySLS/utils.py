@@ -2,7 +2,7 @@
 
 import pkgutil
 from PySide6.QtUiTools import QUiLoader
-from PySide6.QtCore import QMetaObject
+from PySide6.QtCore import QMetaObject, QSize
 from PySide6.QtCore import QBuffer, QIODevice
 
 class UiLoader(QUiLoader):
@@ -35,3 +35,6 @@ def load_ui(ui_file, base_instance=None):
     widget = loader.load(load_res_file_as_QBuffer(ui_file))
     QMetaObject.connectSlotsByName(widget)
     return widget
+
+def qsize2area(src: QSize) -> int:
+    return src.height()*src.width()

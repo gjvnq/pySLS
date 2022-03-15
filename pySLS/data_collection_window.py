@@ -7,13 +7,18 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtWidgets import QMainWindow
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtCore import QBuffer, QByteArray, QIODevice
-from PySide6.QtMultimedia import QMediaDevices, QCamera
+from PySide6.QtGui import QScreen
+from PySide6.QtMultimedia import QMediaDevices, QCamera, QMediaCaptureSession, QImageCapture, QCameraDevice
 
-from .utils import load_ui
+from .utils import load_ui, qsize2area
 
 from icecream import ic
 
 class DataCollection(QMainWindow):
+    camimg: QImageCapture
+    display_options: list[tuple[str, QScreen]]
+    camera_options: list[tuple[str, QCameraDevice]]
+
     def __init__(self, app: QtWidgets.QApplication):
         self.app = app
         super().__init__()
@@ -29,6 +34,7 @@ class DataCollection(QMainWindow):
         self.display_options = [("Resizable Window", None)]
         for screen in self.app.screens():
             size = screen.size()
+            ic(screen)
             title = f"{screen.name()} by {screen.manufacturer()} ({size.width()}x{size.height()})"
             self.display_options += ((title, screen),)
         
@@ -49,9 +55,17 @@ class DataCollection(QMainWindow):
             return
         idx = self.input_video_src.currentIndex()
         ic(idx)
-        ic(self.camera_options[idx])
-        cam = QCamera(self.camera_options[idx][1])
+        camname, camdev = self.camera_options[idx]
+        ic(camname, camdev)
+        cam = QCamera(camdev)
         ic(cam)
+
+        best_fmt = None
+        for fmt in camdev.videoFormats():
+            ic(fmt, fmt.resolution(), fmt.pixelFormat())
+            if best_fmt is None or qsize2area(best_fmt.resolution()) < qsize2area(fmt.resolution()):
+                best_fmt = fmt
+        cam.setCameraFormat(best_fmt)
 
         cam.start()
 
@@ -61,6 +75,10 @@ class DataCollection(QMainWindow):
 
         ic(cam.cameraDevice())
         ic(cam.cameraFormat())
+        ic(cam.cameraFormat().resolution())
+        ic(cam.cameraFormat().pixelFormat())
+        ic(cam.cameraFormat().minFrameRate())
+        ic(cam.cameraFormat().maxFrameRate())
         ic(cam.captureSession())
         ic(cam.colorTemperature())
         ic(cam.customFocusPoint())
@@ -95,6 +113,14 @@ class DataCollection(QMainWindow):
         ic(cam.whiteBalanceMode())
         ic(cam.zoomFactor())
 
+        ic(cam.captureSession())
+        camrec = QMediaCaptureSession(cam)
+        camimg = QImageCapture(camrec)
+        ic(camrec)
+        ic(cam.captureSession())
+        ic(camrec.imageCapture())
+
+
     def reload_cameras(self):
         self.camera_options = []
         cameras_raw = QMediaDevices.videoInputs()
@@ -103,6 +129,7 @@ class DataCollection(QMainWindow):
             ic(cameraDevice.photoResolutions())
             ic(cameraDevice.position())
             ic(cameraDevice.videoFormats())
+        ic(self.camera_options)
 
         self.input_video_src.clear()
         for (title, screen) in self.camera_options:
