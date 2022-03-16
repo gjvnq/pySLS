@@ -6,7 +6,7 @@ from io import StringIO
 from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtWidgets import QMainWindow, QSizePolicy
 from PySide6.QtUiTools import QUiLoader
-from PySide6.QtCore import QBuffer, QByteArray, QIODevice
+from PySide6.QtCore import Qt, QBuffer, QByteArray, QIODevice
 from PySide6.QtGui import QScreen
 from PySide6.QtMultimedia import QMediaDevices, QCamera, QMediaCaptureSession, QImageCapture, QCameraDevice
 from PySide6.QtMultimediaWidgets import QVideoWidget
@@ -24,15 +24,19 @@ class DataCollection(QMainWindow):
         self.app = app
         super().__init__()
         load_ui("data_collection.ui", self)
-        self.input_video_src.currentIndexChanged.connect(self.changed_video_src)
-        self.input_display.currentIndexChanged.connect(self.changed_display)
-        self.camera_view = QVideoWidget()
-        ic(self.camera_view_placeholder.parent().layout().replaceWidget(self.camera_view_placeholder, self.camera_view))
-        # self.camera_view = QVideoWidget(self.camera_view_frame)
-        self.camera_view.resize(200,200)
-        self.camera_view.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
+
 
     def showEvent(self, evt):
+        self.input_video_src.currentIndexChanged.connect(self.changed_video_src)
+        self.input_display.currentIndexChanged.connect(self.changed_display)
+
+        self.camera_view = QVideoWidget()
+        # layout = self.camera_view_placeholder.parent().layout()
+        # ic(layout.replaceWidget(self.camera_view_placeholder, self.camera_view))
+        # self.camera_view.resize(200,200)
+        # self.camera_view.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        
         self.reload_displays()
         self.reload_cameras()
 
@@ -120,15 +124,45 @@ class DataCollection(QMainWindow):
         ic(cam.captureSession())
 
         
+        camrec = QMediaCaptureSession()
+        camrec.setCamera(cam)
+        
+        # ic(...) is just a pretty print from package icecream
+
+        # This doesn't work
         # ic(self.camera_view)
         # ic(camrec.setVideoOutput(self.camera_view))
         # self.camera_view.show()
 
-        camrec = QMediaCaptureSession()
-        camrec.setCamera(cam)
-        camview = QVideoWidget()
-        ic(camrec.setVideoOutput(camview))
-        camview.show()
+        # This works (albeit slow)
+        # camview = QVideoWidget()
+        # ic(camrec.setVideoOutput(camview))
+        # camview.show()
+
+        # This doesn't work
+        # self.camview = QVideoWidget()
+        # ic(camrec.setVideoOutput(self.camview))
+        # self.camview.show()
+
+        # And this works (WTF!?)
+        # (note no show(), yet it works)
+        # camview = QVideoWidget()
+        # layout = self.camera_view_placeholder.parent().layout()
+        # ic(layout.replaceWidget(self.camera_view_placeholder, camview))
+        # ic(camrec.setVideoOutput(camview))
+
+        # And this also works (WTF²!?)
+        # self.camview = QVideoWidget()
+        # layout = self.camera_view_placeholder.parent().layout()
+        # ic(layout.replaceWidget(self.camera_view_placeholder, self.camview))
+        # ic(camrec.setVideoOutput(self.camview))
+
+        # And this doesn't work
+        # layout = self.camera_view_placeholder.parent().layout()
+        # ic(layout.replaceWidget(self.camera_view_placeholder, self.camera_view))
+        # ic(camrec.setVideoOutput(self.camera_view))
+
+
         cam.start()
 
         ic(camrec)
