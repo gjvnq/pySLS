@@ -5,9 +5,13 @@ from PySide6.QtUiTools import QUiLoader
 from PySide6.QtCore import QMetaObject, QSize
 from PySide6.QtCore import QBuffer, QIODevice
 
+from icecream import ic
+
 class UiLoader(QUiLoader):
     def __init__(self, base_instance):
         QUiLoader.__init__(self, base_instance)
+        ic(QUiLoader.availableWidgets(self))
+        ic(QUiLoader.pluginPaths(self))
         self.base_instance = base_instance
 
     def createWidget(self, class_name, parent=None, name=''):
