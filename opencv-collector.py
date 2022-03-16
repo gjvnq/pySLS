@@ -149,11 +149,11 @@ class Collector:
 
 		patname, pat, patmode = self.patterns[self.current_pattern]
 
-		if self.capture_mode is 'project':
+		if self.capture_mode == 'project':
 			cv.imshow('projector', pat)
 			self.capture_wait_until = current_milli_time()+500
 			self.capture_mode = 'project-wait'
-		if self.capture_mode is 'project-wait':
+		if self.capture_mode == 'project-wait':
 			if current_milli_time() >= self.capture_wait_until:
 				self._get_webcam()
 				filename = f"{self.capture_start_time}_{self.current_pattern:02}_{patname}.png"
