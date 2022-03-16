@@ -3,6 +3,8 @@
 import pkgutil
 from io import StringIO
 
+from typing import Optional
+
 from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtWidgets import QMainWindow, QSizePolicy
 from PySide6.QtUiTools import QUiLoader
@@ -19,26 +21,29 @@ class DataCollection(QMainWindow):
     camimg: QImageCapture
     display_options: list[tuple[str, QScreen]]
     camera_options: list[tuple[str, QCameraDevice]]
+    camera_view: Optional[QVideoWidget]
 
     def __init__(self, app: QtWidgets.QApplication):
         self.app = app
         super().__init__()
         load_ui("data_collection.ui", self)
-
-
+        self.camera_view = None
 
     def showEvent(self, evt):
         self.input_video_src.currentIndexChanged.connect(self.changed_video_src)
         self.input_display.currentIndexChanged.connect(self.changed_display)
 
-        self.camera_view = QVideoWidget()
-        # layout = self.camera_view_placeholder.parent().layout()
-        # ic(layout.replaceWidget(self.camera_view_placeholder, self.camera_view))
-        # self.camera_view.resize(200,200)
-        # self.camera_view.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        
         self.reload_displays()
         self.reload_cameras()
+
+    def make_camera_view(self):
+        if self.camera_view is None:
+            self.camera_view = QVideoWidget()
+            layout = self.camera_view_placeholder.parent().layout()
+            # ic(layout.replaceWidget(self.camera_view_placeholder, self.camera_view))
+            # self.camera_view.resize(200,200)
+            # self.camera_view.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
 
     def reload_displays(self):
         self.display_options = [("Resizable Window", None)]
@@ -126,6 +131,7 @@ class DataCollection(QMainWindow):
         
         camrec = QMediaCaptureSession()
         camrec.setCamera(cam)
+        cam.start()
         
         # ic(...) is just a pretty print from package icecream
 
@@ -162,8 +168,11 @@ class DataCollection(QMainWindow):
         # ic(layout.replaceWidget(self.camera_view_placeholder, self.camera_view))
         # ic(camrec.setVideoOutput(self.camera_view))
 
+        # self.make_camera_view()
+        # self.camera_view.show()
+        # ic(camrec.setVideoOutput(self.camera_view))
 
-        cam.start()
+
 
         ic(camrec)
         ic(cam.captureSession())
