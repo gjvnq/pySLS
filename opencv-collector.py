@@ -6,6 +6,10 @@ from pathlib import Path
 import numpy as np
 import cv2 as cv
 import imutils
+import time
+
+def current_milli_time():
+    return round(time.time() * 1000)
 
 def show_webcam():
 	cap = cv.VideoCapture(0)
@@ -72,7 +76,7 @@ class Collector:
 			raise ValueError("Cannot open camera")
 		
 		self.webcam = webcam
-		
+		self.capture_mode = None
 		self.output_dir = Path(output_dir)
 		if self.output_dir.exists() and (not self.output_dir.is_dir()):
 			raise ValueError(f"path {output_dir} is not a directory")
@@ -99,12 +103,12 @@ class Collector:
 		self.patterns.append((name, pat, 'color'))
 
 		for level in range(12):
-			name = f'vert-L{level}-{width}x{height}'
+			name = f'vert-L{level:02}-{width:04}x{height:04}'
 			pat = make_vertical_binary_stripes(level, width, height)
 			if pat is not None:
 				self.patterns.append((name, pat, 'gray'))
 
-			name = f'horiz-L{level}-{width}x{height}'
+			name = f'horz-L{level:02}-{width:04}x{height:04}'
 			pat = make_horizontal_binary_stripes(level, width, height)
 			if pat is not None:
 				self.patterns.append((name, pat, 'gray'))
@@ -118,7 +122,7 @@ class Collector:
 		# Our operations on the frame come here
 		self.cam_gray = cv.cvtColor(self.cam_color, cv.COLOR_BGR2GRAY)
 
-	def _step(self):
+	def _step_preview(self):
 		self._get_webcam()
 		patname, pat, patmode = self.patterns[self.current_pattern]
 		if patmode == 'color':
@@ -129,15 +133,54 @@ class Collector:
 		minipat = imutils.resize(pat, width=320)
 		self.imggui =np.concatenate((minicam, minipat), axis=1)
 
+	def _start_capture(self):
+		self.current_pattern = 0
+		self.capture_start_time = current_milli_time()
+		self.capture_mode = 'project'
+
+	def _stop_capture(self):
+		self.current_pattern = 0
+		self.capture_start_time = None
+		self.capture_mode = None
+
+	def _step_capture(self):
+		if self.capture_mode is None:
+			return
+
+		patname, pat, patmode = self.patterns[self.current_pattern]
+
+		if self.capture_mode is 'project':
+			cv.imshow('projector', pat)
+			self.capture_wait_until = current_milli_time()+500
+			self.capture_mode = 'project-wait'
+		if self.capture_mode is 'project-wait':
+			if current_milli_time() >= self.capture_wait_until:
+				self._get_webcam()
+				filename = f"{self.capture_start_time}_{self.current_pattern:02}_{patname}.png"
+				if patmode == 'color':
+					webcam = self.cam_color
+				else:
+					webcam = self.cam_gray
+				filename = str(self.output_dir.joinpath(filename))
+				cv.imwrite(filename, webcam)
+
+				self.current_pattern += 1
+				if self.current_pattern >= len(self.patterns):
+					self._stop_capture()
+				else:
+					self.capture_mode = 'project'
 
 	def loop(self):
 		while True:
-			self._step()
+			self._step_preview()
+			self._step_capture()
 			cv.imshow('imggui', self.imggui)
-			if cv.waitKey(250) == 27: #ESC
+			key = cv.waitKey(250)
+			if key == 27: #ESC
 				break
-			self.current_pattern += 1
-			self.current_pattern %= len(self.patterns)
+			if key == ord('c'): #ESC
+				print("Starting capture")
+				self._start_capture()
 
 	def __del__(self):
 		self.webcam.release()
